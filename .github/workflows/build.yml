@@ -1,0 +1,42 @@
+name: build-reports
+
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: write   # чтобы коммитить готовые файлы обратно в репозиторий
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install fonts for Cyrillic (PDF)
+        run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate PDF & PPTX
+        run: python scripts/generate_reports.py
+
+      - name: Commit outputs back to repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add output/*
+          git commit -m "Add generated reports" || echo "Nothing to commit"
+          git push
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: output/*
